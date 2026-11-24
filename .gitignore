@@ -1,0 +1,14 @@
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+**/vendor/
+**/node_modules/
+**/config.local.php
+**/.env
+**/google-reader.json
+**/*.sqlite
+**/*.sqlite-*
+**/*.lock.tmp
+**/.phpunit.cache/
+**/.phpunit.result.cache

@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="ru">
+    <meta charset="utf-8" /><meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    /><title>Расчёт печати</title>
+    <style>
+        body {
+            font: 17px/1.5 system-ui;
+            margin: 0;
+            background: #edf2f7;
+            color: #182a40;
+        }
+        main {
+            max-width: 650px;
+            margin: auto;
+            padding: 24px;
+        }
+        h1 {
+            font-size: 26px;
+        }
+        label {
+            display: block;
+            margin: 14px 0;
+        }
+        input,
+        select,
+        button {
+            font: inherit;
+            box-sizing: border-box;
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #aebdce;
+            border-radius: 10px;
+            background: white;
+            color: inherit;
+        }
+        button {
+            background: #315dcc;
+            color: white;
+            margin: 8px 0;
+            cursor: pointer;
+        }
+        button:disabled {
+            opacity: 0.5;
+        }
+        article {
+            padding: 18px;
+            background: white;
+            border-radius: 14px;
+            margin: 18px 0;
+        }
+        #price {
+            font-size: 26px;
+            font-weight: 700;
+        }
+        small {
+            display: block;
+        }
+        li {
+            margin-bottom: 14px;
+        }
+    </style>
+    <main>
+        <h1>Калькулятор печати</h1>
+        <p>Цена предварительная. Менеджер проверит макет и условия.</p>
+        <form id="form">
+            <fieldset id="fields" style="border: 0; padding: 0">
+                <label
+                    >Количество<input
+                        name="qty"
+                        type="number"
+                        min="1"
+                        max="1000"
+                        value="100"
+                        required
+                /></label>
+                <label
+                    >Формат<select name="size">
+                        <option>A4</option>
+                        <option>A3</option>
+                    </select></label
+                >
+                <label
+                    >Печать<select name="color">
+                        <option value="bw">Чёрно-белая</option>
+                        <option value="color">Цветная</option>
+                    </select></label
+                >
+                <label
+                    >Срочность<select name="urgent">
+                        <option value="no">Обычная</option>
+                        <option value="yes">
+                            Срочная, +25% к изготовлению
+                        </option>
+                    </select></label
+                >
+                <label
+                    >Получение<select name="delivery">
+                        <option value="pickup">Самовывоз</option>
+                        <option value="courier">Курьер, 350 ₽</option>
+                    </select></label
+                >
+            </fieldset>
+            <article>
+                <small>Оценка в браузере</small>
+                <div id="price"></div>
+                <p id="server">Сохраните расчёт для проверки цены сервером.</p>
+            </article>
+            <button id="save">Сохранить расчёт на сервере</button>
+        </form>
+        <button id="send" disabled>Передать заявку менеджеру</button>
+        <p id="status" role="status"></p>
+        <button id="refresh">Обновить сохранённые расчёты</button>
+        <ul id="history"></ul>
+    </main>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        const tg = window.Telegram?.WebApp;
+        tg?.ready();
+        const form = document.querySelector("#form"),
+            fields = document.querySelector("#fields"),
+            save = document.querySelector("#save"),
+            send = document.querySelector("#send"),
+            status = document.querySelector("#status");
+        let selected = null,
+            key = crypto.randomUUID(),
+            busy = false;
+        const money = (n) =>
+            (n / 100).toLocaleString("ru-RU", { minimumFractionDigits: 2 }) +
+            " ₽";
+        function params() {
+            // Поля временно disabled во время запроса, но цена должна читаться и тогда.
+            return Object.fromEntries(
+                ["qty", "size", "color", "urgent", "delivery"].map((name) => [
+                    name,
+                    form.elements.namedItem(name).value,
+                ]),
+            );
+        }
+        function preview() {
+            const p = params(),
+                base =
+                    15000 +
+                    Number(p.qty) *
+                        (p.color === "color" ? 2800 : 1200) *
+                        (p.size === "A3" ? 2 : 1);
+            document.querySelector("#price").textContent = money(
+                (p.urgent === "yes"
+                    ? Math.floor((base * 125 + 50) / 100)
+                    : base) + (p.delivery === "courier" ? 35000 : 0),
+            );
+        }
+        function choose(q) {
+            selected = q;
+            key = q.operation;
+            for (const [name, value] of Object.entries(JSON.parse(q.params)))
+                form.elements.namedItem(name).value = value;
+            preview();
+            send.disabled =
+                !!q.submitted_at || Date.now() / 1000 >= q.expires_at;
+            document.querySelector("#server").textContent =
+                "Сервер: " +
+                money(q.total_minor) +
+                " · " +
+                q.tariff +
+                " · до " +
+                new Date(q.expires_at * 1000).toLocaleString("ru-RU") +
+                (q.submitted_at ? " · заявка сохранена" : "");
+        }
+        async function api(body) {
+            const r = await fetch("api.php", {
+                method: body ? "POST" : "GET",
+                headers: {
+                    "X-Telegram-Init-Data": tg?.initData || "",
+                    ...(body ? { "Content-Type": "application/json" } : {}),
+                },
+                ...(body ? { body: JSON.stringify(body) } : {}),
+            });
+            const j = await r.json();
+            if (!r.ok) throw Error(j.error || "Ошибка запроса");
+            return j;
+        }
+        async function history() {
+            const j = await api();
+            const list = document.querySelector("#history");
+            list.replaceChildren();
+            for (const q of j.quotes) {
+                const li = document.createElement("li"),
+                    b = document.createElement("button");
+                const p = JSON.parse(q.params);
+                b.textContent =
+                    p.qty +
+                    " шт. · " +
+                    p.size +
+                    " · " +
+                    p.color +
+                    " · " +
+                    money(q.total_minor) +
+                    (q.submitted_at ? " · заявка сохранена" : "");
+                b.onclick = () => {
+                    if (!busy) choose(q);
+                };
+                li.append(b);
+                list.append(li);
+            }
+        }
+        form.oninput = () => {
+            selected = null;
+            key = crypto.randomUUID();
+            send.disabled = true;
+            document.querySelector("#server").textContent =
+                "Параметры изменены. Сохраните новый расчёт.";
+            preview();
+        };
+        async function act(fn) {
+            if (busy) return;
+            busy = true;
+            fields.disabled = save.disabled = send.disabled = true;
+            try {
+                await fn();
+            } catch (e) {
+                status.textContent = e.message;
+            } finally {
+                busy = false;
+                fields.disabled = save.disabled = false;
+                send.disabled =
+                    !selected ||
+                    !!selected.submitted_at ||
+                    Date.now() / 1000 >= selected.expires_at;
+            }
+        }
+        form.onsubmit = (e) => {
+            e.preventDefault();
+            const p = params();
+            if (selected && Date.now() / 1000 >= selected.expires_at) {
+                key = crypto.randomUUID();
+                selected = null;
+            }
+            act(async () => {
+                const j = await api({ action: "quote", ...p, operation: key });
+                choose(j.quote);
+                status.textContent =
+                    "Проверьте серверную цену перед отправкой.";
+                await history();
+            });
+        };
+        send.onclick = () =>
+            act(async () => {
+                await api({ action: "submit", id: selected.id });
+                selected.submitted_at = Math.floor(Date.now() / 1000);
+                status.textContent =
+                    "Заявка сохранена. Доставка менеджеру выполняется отдельно.";
+                await history();
+            });
+        document.querySelector("#refresh").onclick = () =>
+            history().catch((e) => (status.textContent = e.message));
+        preview();
+        history().catch((e) => (status.textContent = e.message));
+    </script>
+</html>

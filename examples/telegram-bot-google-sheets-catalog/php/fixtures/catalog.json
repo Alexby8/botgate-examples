@@ -1,0 +1,8 @@
+{
+  "values": [
+    ["id", "title", "price_minor", "active", "stock"],
+    ["mug-450", "Термокружка 450 мл", 149000, true, 12],
+    ["bag-small", "Сумка малая", 89000, true, 0],
+    ["bottle-old", "Бутылка прежней серии", 99000, false, 0]
+  ]
+}

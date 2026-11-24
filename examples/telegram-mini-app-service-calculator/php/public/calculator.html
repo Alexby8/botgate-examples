@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Калькулятор стоимости печати</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 17px/1.5 system-ui; background: var(--tg-theme-bg-color, #f3f6fa); color: var(--tg-theme-text-color, #182b44); }
+    main { max-width: 580px; margin: auto; padding: 24px; }
+    h1 { font-size: 26px; line-height: 1.25; }
+    fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+    label { display: block; margin: 14px 0; }
+    input, select, button { width: 100%; padding: 12px; font: inherit; border: 1px solid #8b9bb0; border-radius: 8px; }
+    button { background: var(--tg-theme-button-color, #315fd2); color: var(--tg-theme-button-text-color, white); border: 0; cursor: pointer; }
+    button:disabled { opacity: .6; }
+    #result { font-size: 22px; font-weight: 650; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Калькулятор стоимости печати</h1>
+  <p>Выберите параметры. Итоговую смету подтвердит менеджер.</p>
+  <form id="calculator">
+    <fieldset id="fields">
+      <label>Количество, шт.<input name="qty" type="number" min="1" max="1000" step="1" value="100" required></label>
+      <label>Формат<select name="size"><option>A4</option><option>A3</option></select></label>
+      <label>Печать<select name="color"><option value="bw">Чёрно-белая</option><option value="color">Цветная</option></select></label>
+      <label>Срок<select name="urgent"><option value="no">Обычный</option><option value="yes">Срочно (+25%)</option></select></label>
+      <label>Получение<select name="delivery"><option value="pickup">Самовывоз</option><option value="courier">Курьер (+350 ₽)</option></select></label>
+      <button>Рассчитать стоимость</button>
+    </fieldset>
+  </form>
+  <p id="result" role="status" aria-live="polite">Здесь появится предварительная цена.</p>
+</main>
+<script>
+  window.Telegram?.WebApp.ready();
+  const form = document.querySelector('#calculator');
+  const fields = document.querySelector('#fields');
+  const result = document.querySelector('#result');
+  const money = new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB' });
+  form.oninput = () => { result.textContent = 'Параметры изменены. Рассчитайте заново.'; };
+  form.onsubmit = async (event) => {
+    event.preventDefault();
+    if (fields.disabled) return;
+    const params = Object.fromEntries(new FormData(form));
+    fields.disabled = true;
+    result.textContent = 'Рассчитываем…';
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10000);
+    try {
+      const response = await fetch('./calculate.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params),
+        signal: controller.signal
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Ошибка расчёта');
+      result.textContent = 'Предварительно: ' + money.format(data.total_minor / 100);
+    } catch (error) {
+      result.textContent = error.name === 'AbortError'
+        ? 'Сервер не ответил вовремя. Нажмите «Рассчитать стоимость» ещё раз.'
+        : 'Не удалось рассчитать: ' + error.message;
+    } finally {
+      clearTimeout(timer);
+      fields.disabled = false;
+    }
+  };
+</script>
+</body>
+</html>
