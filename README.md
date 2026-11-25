@@ -7,6 +7,8 @@
 | --- | --- | --- |
 | [Калькулятор стоимости услуг в Mini App](examples/telegram-mini-app-service-calculator/) | [Руководство](https://bot-gate.ru/guides/telegram-mini-app-service-calculator) | PHP + HTML/JavaScript |
 | [Каталог бота из Google Таблиц](examples/telegram-bot-google-sheets-catalog/) | [Руководство](https://bot-gate.ru/guides/telegram-bot-google-sheets-catalog) | PHP |
+| [Пошаговая анкета на консультацию](examples/telegram-bot-step-by-step-form/) | [Руководство](https://bot-gate.ru/guides/telegram-bot-step-by-step-form) | PHP |
+| [Первая форма заявки в Mini App](examples/telegram-mini-app-html-php-form/) | [Руководство](https://bot-gate.ru/guides/telegram-mini-app-html-php-form) | PHP + HTML/JavaScript |
 
 ## Организация
 

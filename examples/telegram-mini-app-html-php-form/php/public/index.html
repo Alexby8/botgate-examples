@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Заявка на консультацию</title>
+  <script src="https://telegram.org/js/telegram-web-app.js?64"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 20px; font: 16px/1.5 system-ui;
+      color: var(--tg-theme-text-color, #17212b);
+      background: var(--tg-theme-bg-color, #fff); }
+    main { max-width: 520px; margin: auto; }
+    label { display: block; margin: 16px 0; }
+    input, textarea, button { font: inherit; width: 100%; padding: 12px; }
+    input, textarea { color: inherit; background: inherit;
+      border: 1px solid #888; border-radius: 8px; }
+    button { border: 0; border-radius: 8px; margin-top: 12px;
+      color: var(--tg-theme-button-text-color, #fff);
+      background: var(--tg-theme-button-color, #246bce); }
+    button:disabled { opacity: .55; }
+    #status { overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Заявка на консультацию</h1>
+  <form id="lead">
+    <label>Как к вам обращаться
+      <input name="name" required maxlength="80" autocomplete="name">
+    </label>
+    <label>Ваш вопрос
+      <textarea name="question" required maxlength="1000" rows="5"></textarea>
+    </label>
+    <p>Имя и вопрос будут сохранены для обработки обращения сервисным центром.
+      Не указывайте пароли и платёжные данные.</p>
+    <button id="send" type="submit" disabled>Отправить заявку</button>
+  </form>
+  <p id="status" role="status" aria-live="polite"></p>
+  <button id="new" type="button" hidden>Новая заявка</button>
+</main>
+<script>
+const app = window.Telegram && window.Telegram.WebApp;
+const form = document.getElementById('lead');
+const send = document.getElementById('send');
+const status = document.getElementById('status');
+const next = document.getElementById('new');
+const inputs = [...form.querySelectorAll('input, textarea')];
+let requestId;
+try {
+  requestId = sessionStorage.getItem('leadRequestId') || crypto.randomUUID();
+  sessionStorage.setItem('leadRequestId', requestId);
+  if (!app || !app.initData) throw new Error('Open from Telegram');
+  app.ready();
+  app.expand();
+  send.disabled = false;
+} catch (error) {
+  status.textContent = 'Откройте форму из меню бота в актуальном Telegram.';
+}
+form.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (!app || !app.initData || !requestId || send.disabled) return;
+  send.disabled = true;
+  next.hidden = true;
+  status.textContent = 'Сохраняем заявку…';
+  let saved = false;
+  try {
+    const fields = new FormData(form);
+    inputs.forEach(input => { input.readOnly = true; });
+    const response = await fetch('submit.php', {
+      method: 'POST', credentials: 'omit',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({initData: app.initData, requestId,
+        name: fields.get('name'), question: fields.get('question')})
+    });
+    const result = await response.json();
+    if (!response.ok || result.saved !== true) {
+      if (response.status === 409) next.hidden = false;
+      throw new Error(result.error || 'Не удалось подтвердить сохранение');
+    }
+    saved = true;
+    status.textContent = 'Заявка №' + result.id + ' сохранена.' +
+      (result.notification === 'sent' ? ' Подтверждение отправлено в чат.' :
+        ' Отправка подтверждения в чат не подтверждена; заявка уже в базе.');
+    next.hidden = false;
+  } catch (error) {
+    status.textContent = error instanceof Error ? error.message : 'Ошибка связи';
+    status.textContent += ' При повторе сохраните те же значения полей.';
+  } finally {
+    send.disabled = saved;
+    inputs.forEach(input => { input.readOnly = saved; });
+  }
+});
+next.addEventListener('click', () => {
+  requestId = crypto.randomUUID();
+  sessionStorage.setItem('leadRequestId', requestId);
+  form.reset();
+  inputs.forEach(input => { input.readOnly = false; });
+  status.textContent = '';
+  next.hidden = true;
+  send.disabled = false;
+});
+</script>
+</body>
+</html>
