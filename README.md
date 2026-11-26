@@ -26,6 +26,12 @@
 | [Отзывы клиентов](examples/telegram-bot-customer-reviews/) | [Руководство](https://bot-gate.ru/guides/telegram-bot-customer-reviews) | PHP |
 | [Реферальная программа](examples/telegram-bot-referral-program/) | [Руководство](https://bot-gate.ru/guides/telegram-bot-referral-program) | PHP |
 | [Билеты с QR](examples/telegram-bot-qr-tickets/) | [Руководство](https://bot-gate.ru/guides/telegram-bot-qr-tickets) | PHP + HTML/JavaScript |
+| [Поддержка из группы операторов](examples/telegram-bot-support-operator-group/) | [Руководство](https://bot-gate.ru/guides/telegram-bot-support-operator-group) | PHP |
+| [Приём фотоальбома](examples/telegram-bot-receive-photo-album/) | [Руководство](https://bot-gate.ru/guides/telegram-bot-receive-photo-album) | PHP |
+| [Запись на консультацию](examples/telegram-bot-appointment-booking/) | [Руководство](https://bot-gate.ru/guides/telegram-bot-appointment-booking) | PHP |
+| [Корзина в Mini App](examples/telegram-mini-app-cart-checkout/) | [Руководство](https://bot-gate.ru/guides/telegram-mini-app-cart-checkout) | PHP + HTML/JavaScript |
+| [Каталог с листанием](examples/telegram-bot-product-catalog-pagination/) | [Руководство](https://bot-gate.ru/guides/telegram-bot-product-catalog-pagination) | PHP |
+| [Согласование заявок](examples/telegram-bot-request-approval/) | [Руководство](https://bot-gate.ru/guides/telegram-bot-request-approval) | PHP |
 
 ## Организация
 
