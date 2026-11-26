@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ru"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Уведомления</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+body{font:17px system-ui;padding:16px;color:var(--tg-theme-text-color,#111);background:var(--tg-theme-bg-color,#fff)}
+label,button{display:block;margin:16px 0}button,select,input[type=time]{padding:12px;font:inherit;max-width:100%;box-sizing:border-box}
+button{width:100%;min-height:48px}fieldset{border:0;padding:0;margin:0;min-width:0}
+</style>
+<h1>Настройки уведомлений</h1>
+<form id="form"><fieldset id="fields" disabled>
+<label><input id="orders" type="checkbox"> Статусы заказов</label>
+<label><input id="offers" type="checkbox"> Предложения магазина</label>
+<label>Часовой пояс <select id="timezone"></select></label>
+<label><input id="quiet" type="checkbox"> Часы тишины</label>
+<label>С <input id="start" type="time" value="22:00" required></label>
+<label>До <input id="end" type="time" value="08:00" required></label>
+<button>Сохранить</button></fieldset></form>
+<button id="access" type="button">Разрешить боту писать</button>
+<p id="status" role="status" aria-live="polite"></p>
+<script>
+const tg = window.Telegram?.WebApp;
+const el = id => document.getElementById(id);
+const detected = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+const zones = typeof Intl.supportedValuesOf === 'function' ? Intl.supportedValuesOf('timeZone') : ['Europe/Moscow','Asia/Yekaterinburg','Asia/Novosibirsk','Asia/Vladivostok'];
+function addZone(zone) {
+  if (![...el('timezone').options].some(option => option.value === zone)) el('timezone').add(new Option(zone, zone));
+}
+['UTC',detected,...zones].forEach(addZone);
+async function api(body) {
+  const response = await fetch('preferences-api.php', {method:'POST',
+    headers:{'Content-Type':'application/json','X-Telegram-Init-Data':tg?.initData || ''}, body:JSON.stringify(body)});
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Не удалось сохранить');
+  return data.settings;
+}
+const clock = minute => String(Math.floor(minute / 60)).padStart(2,'0') + ':' + String(minute % 60).padStart(2,'0');
+async function load() {
+  try {
+    const p = await api({action:'load'});
+    ['orders','offers','quiet'].forEach(key => el(key).checked = Number(p[key]) === 1);
+    addZone(p.timezone); el('timezone').value = p.timezone;
+    el('start').value = clock(Number(p.start_min)); el('end').value = clock(Number(p.end_min));
+    el('fields').disabled = false;
+    el('status').textContent = 'Проверьте пояс. Пояс устройства: ' + detected;
+  } catch (error) {el('status').textContent = error.message;}
+}
+el('form').onsubmit = async event => {
+  event.preventDefault(); el('fields').disabled = true;
+  try {
+    await api({action:'save', orders:el('orders').checked, offers:el('offers').checked,
+      quiet:el('quiet').checked, timezone:el('timezone').value, start:el('start').value, end:el('end').value});
+    el('status').textContent = 'Настройки сохранены. Разрешение писать запрашивается отдельно.';
+  } catch (error) {el('status').textContent = error.message;}
+  finally {el('fields').disabled = false;}
+};
+el('access').onclick = () => {
+  if (!tg?.isVersionAtLeast('6.9') || typeof tg.requestWriteAccess !== 'function') {
+    el('status').textContent = 'Обновите Telegram или откройте диалог с ботом и нажмите Start.';
+    return;
+  }
+  el('access').disabled = true;
+  try {
+    tg.requestWriteAccess(granted => {
+      el('access').disabled = false;
+      el('status').textContent = granted ? 'Разрешение получено. Выбранные категории не изменены.' : 'Разрешение не получено. Настройки сохранены.';
+    });
+  } catch (error) {el('access').disabled = false; el('status').textContent = error.message;}
+};
+if (tg?.initData) {
+  tg.ready();
+  load();
+} else {
+  el('access').disabled = true;
+  el('status').textContent = 'Откройте настройки через меню Telegram-бота.';
+}
+</script></html>
