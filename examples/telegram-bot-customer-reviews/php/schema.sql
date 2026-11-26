@@ -1,0 +1,13 @@
+CREATE TABLE orders (id TEXT PRIMARY KEY,user_id INTEGER NOT NULL,status TEXT NOT NULL,completed_at INTEGER NOT NULL);
+CREATE TABLE reviews (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,order_id TEXT NOT NULL UNIQUE,user_id INTEGER NOT NULL,
+ token TEXT NOT NULL UNIQUE,expires_at INTEGER NOT NULL,score INTEGER,comment TEXT,
+ prompt_message_id INTEGER,publication_allowed INTEGER NOT NULL DEFAULT 0,
+ consent_version TEXT,consent_at INTEGER,completed_at INTEGER
+);
+CREATE TABLE inbox (update_id INTEGER PRIMARY KEY,payload TEXT NOT NULL,state TEXT NOT NULL DEFAULT 'pending');
+CREATE TABLE outbox (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,dedupe_key TEXT NOT NULL UNIQUE,review_id INTEGER,
+ kind TEXT NOT NULL,payload TEXT NOT NULL,state TEXT NOT NULL DEFAULT 'pending',attempts INTEGER NOT NULL DEFAULT 0,
+ next_attempt_at INTEGER NOT NULL DEFAULT 0,message_id INTEGER,error_code INTEGER
+);

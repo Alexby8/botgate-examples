@@ -20,6 +20,12 @@
 | [База знаний](examples/telegram-bot-company-knowledge-base/) | [Руководство](https://bot-gate.ru/guides/telegram-bot-company-knowledge-base) | PHP |
 | [Уведомление о наличии](examples/telegram-bot-back-in-stock-notifications/) | [Руководство](https://bot-gate.ru/guides/telegram-bot-back-in-stock-notifications) | PHP |
 | [Выбор чата для уведомлений](examples/telegram-bot-select-notification-chat/) | [Руководство](https://bot-gate.ru/guides/telegram-bot-select-notification-chat) | PHP |
+| [Бонусная карта в Mini App](examples/telegram-mini-app-loyalty-card/) | [Руководство](https://bot-gate.ru/guides/telegram-mini-app-loyalty-card) | PHP + HTML/JavaScript |
+| [Задачи сотрудников](examples/telegram-bot-employee-tasks/) | [Руководство](https://bot-gate.ru/guides/telegram-bot-employee-tasks) | PHP |
+| [Лист ожидания](examples/telegram-bot-waiting-list/) | [Руководство](https://bot-gate.ru/guides/telegram-bot-waiting-list) | PHP |
+| [Отзывы клиентов](examples/telegram-bot-customer-reviews/) | [Руководство](https://bot-gate.ru/guides/telegram-bot-customer-reviews) | PHP |
+| [Реферальная программа](examples/telegram-bot-referral-program/) | [Руководство](https://bot-gate.ru/guides/telegram-bot-referral-program) | PHP |
+| [Билеты с QR](examples/telegram-bot-qr-tickets/) | [Руководство](https://bot-gate.ru/guides/telegram-bot-qr-tickets) | PHP + HTML/JavaScript |
 
 ## Организация
 

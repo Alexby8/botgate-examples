@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ru"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Проверка билетов</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+body{font:18px system-ui;margin:24px;color:var(--tg-theme-text-color,#111);background:var(--tg-theme-bg-color,#fff)}
+button,input{display:block;width:100%;box-sizing:border-box;margin:16px 0;padding:14px;font:inherit}
+#result{overflow-wrap:anywhere}button{min-height:48px}
+</style>
+<h1>Встреча разработчиков</h1>
+<button id="scan">Сканировать QR</button>
+<input id="token" aria-label="Код билета" placeholder="Или вставьте код со сканера">
+<button id="preview">Проверить</button>
+<p id="result" role="status" aria-live="polite"></p>
+<button id="consume" disabled>Пропустить участника</button>
+<script>
+const tg = window.Telegram?.WebApp;
+const el = id => document.getElementById(id);
+let checked = '', busy = false;
+async function request(action) {
+  if (busy) return;
+  busy = true;
+  el('token').disabled = true;
+  el('consume').disabled = true;
+  const token = action === 'consume' ? checked : el('token').value.trim();
+  checked = '';
+  try {
+    const response = await fetch('check-api.php', {
+      method:'POST', headers:{'Content-Type':'application/json','X-Telegram-Init-Data':tg?.initData || ''},
+      body:JSON.stringify({action, token})
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Ошибка проверки');
+    const messages = {ready:'Билет действителен. Подтвердите проход.', accepted:'Проход записан. Пропустите участника.',
+      used:'Билет уже использован. Повторный проход запрещён.', invalid:'Билет не найден или отменён.'};
+    el('result').textContent = messages[data.status] || 'Неизвестный ответ';
+    if (data.used_at) el('result').textContent += ' Время: ' + new Date(data.used_at * 1000).toLocaleString();
+    if (data.status === 'ready') checked = token;
+  } catch (error) {
+    el('result').textContent = error.message + '. При потере связи проверьте этот же билет снова.';
+  } finally {
+    busy = false;
+    el('token').disabled = false;
+    el('consume').disabled = !checked;
+  }
+}
+el('preview').onclick = () => request('preview');
+el('consume').onclick = () => request('consume');
+el('token').oninput = () => {checked = ''; el('consume').disabled = true;};
+el('scan').onclick = () => {
+  if (busy) return;
+  if (!tg?.isVersionAtLeast('6.4')) {
+    el('result').textContent = 'Обновите Telegram или вставьте код с внешнего сканера.';
+    return;
+  }
+  tg.showScanQrPopup({text:'Наведите камеру на билет'}, value => {
+    el('token').value = value;
+    request('preview');
+    return true;
+  });
+};
+tg?.ready();
+</script></html>
