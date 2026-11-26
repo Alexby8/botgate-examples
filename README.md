@@ -15,6 +15,11 @@
 | [Настройки уведомлений в Mini App](examples/telegram-mini-app-notification-settings/) | [Руководство](https://bot-gate.ru/guides/telegram-mini-app-notification-settings) | PHP + HTML/JavaScript |
 | [Telegram-бот на русском и английском](examples/telegram-bot-multiple-languages/) | [Руководство](https://bot-gate.ru/guides/telegram-bot-multiple-languages) | PHP / Laravel |
 | [Ежедневный отчёт в Telegram](examples/telegram-daily-sales-report/) | [Руководство](https://bot-gate.ru/guides/telegram-daily-sales-report) | PHP |
+| [Длинные сообщения](examples/telegram-bot-long-messages/) | [Руководство](https://bot-gate.ru/guides/telegram-bot-long-messages) | PHP |
+| [Кнопка «Поделиться»](examples/telegram-mini-app-share-message/) | [Руководство](https://bot-gate.ru/guides/telegram-mini-app-share-message) | PHP + HTML/JavaScript |
+| [База знаний](examples/telegram-bot-company-knowledge-base/) | [Руководство](https://bot-gate.ru/guides/telegram-bot-company-knowledge-base) | PHP |
+| [Уведомление о наличии](examples/telegram-bot-back-in-stock-notifications/) | [Руководство](https://bot-gate.ru/guides/telegram-bot-back-in-stock-notifications) | PHP |
+| [Выбор чата для уведомлений](examples/telegram-bot-select-notification-chat/) | [Руководство](https://bot-gate.ru/guides/telegram-bot-select-notification-chat) | PHP |
 
 ## Организация
 

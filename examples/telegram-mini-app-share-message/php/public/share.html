@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ru"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Поделиться товаром</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+body{font:17px system-ui;padding:16px;color:var(--tg-theme-text-color,#111);background:var(--tg-theme-bg-color,#fff)}
+button,input{padding:14px;margin:12px 0;width:100%;box-sizing:border-box;font:inherit}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit}button{min-height:48px}
+</style>
+<h1>Поделиться товаром</h1>
+<p>Друг получит только эту публичную карточку:</p>
+<pre id="preview">Подготовка…</pre>
+<button id="prepare">Подготовить заново</button>
+<button id="share" disabled>Поделиться</button>
+<label>Публичная ссылка <input id="link" readonly aria-label="Публичная ссылка"></label>
+<p id="status" role="status" aria-live="polite"></p>
+<script>
+const tg = window.Telegram?.WebApp;
+const el = id => document.getElementById(id);
+let prepared = null, preparing = false, sharing = false;
+let retryAt = 0;
+const supported = Boolean(tg?.isVersionAtLeast?.('8.0') && typeof tg.shareMessage === 'function');
+async function prepare() {
+  if (preparing || sharing) return;
+  if (performance.now() < retryAt) {el('status').textContent = 'Подождите перед повтором.'; return;}
+  preparing = true; prepared = null;
+  el('share').disabled = true; el('prepare').disabled = true;
+  const started = performance.now();
+  try {
+    const response = await fetch('prepare.php', {method:'POST',
+      headers:{'Content-Type':'application/json','X-Telegram-Init-Data':tg?.initData || ''},
+      body:JSON.stringify({sku:'mug-blue'})});
+    if (response.status === 429) retryAt = performance.now() + Number(response.headers.get('Retry-After') || 60) * 1000;
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Ошибка подготовки');
+    prepared = {id:data.id, deadline:started + Math.max(0, data.valid_for - 5) * 1000};
+    el('preview').textContent = data.preview; el('link').value = data.url;
+    el('share').disabled = !supported;
+    el('status').textContent = supported ? 'Карточка готова. Выберите «Поделиться».' : 'Обновите Telegram или выделите и скопируйте публичную ссылку.';
+  } catch (error) {el('status').textContent = error.message;}
+  finally {preparing = false; el('prepare').disabled = false;}
+}
+el('prepare').onclick = prepare;
+el('link').onclick = () => el('link').select();
+el('share').onclick = () => {
+  if (sharing || !prepared || !supported) return;
+  if (performance.now() >= prepared.deadline) {
+    el('share').disabled = true; prepared = null;
+    el('status').textContent = 'Срок карточки истёк. Подготовьте её заново.'; return;
+  }
+  sharing = true; el('share').disabled = true; el('prepare').disabled = true;
+  try {
+    tg.shareMessage(prepared.id, sent => {
+      sharing = false; el('share').disabled = false; el('prepare').disabled = false;
+      el('status').textContent = sent ? 'Telegram подтвердил отправку карточки.' : 'Отправка не подтверждена: окно закрыто или произошла ошибка. Можно повторить.';
+    });
+  } catch (error) {
+    sharing = false; prepared = null; el('prepare').disabled = false;
+    el('status').textContent = 'Не удалось открыть отправку. Подготовьте карточку заново.';
+  }
+};
+if (tg?.initData) {
+  tg.ready();
+  prepare();
+} else {
+  el('prepare').disabled = true;
+  el('preview').textContent = 'Откройте Mini App из меню бота.';
+}
+</script></html>
