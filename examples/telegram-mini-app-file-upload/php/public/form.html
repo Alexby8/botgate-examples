@@ -1,0 +1,101 @@
+<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Заявка на ремонт</title><script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>*{box-sizing:border-box}body{margin:0;padding:22px;font:16px/1.5 system-ui;background:#f2f6fc;color:#17243a}main{max-width:560px;margin:auto}h1{font-size:26px}label{display:block;margin-top:18px}textarea,input,button{width:100%;font:inherit;padding:12px;border-radius:10px;border:1px solid #aab8cc}textarea{min-height:110px}button{margin-top:12px;background:#2869b0;color:white;border:0}button:disabled{opacity:.5}#status{padding:12px;background:#e0eafa;border-radius:10px}.file{margin:12px 0;padding:12px;background:white;border-radius:10px;overflow-wrap:anywhere}.file img{display:block;max-width:100%;max-height:150px;margin-top:8px}small{display:block;color:#52647d;margin:10px 0}</style>
+<main><h1>Заявка на ремонт</h1><p id="status" role="status">Выберите файлы и опишите неисправность</p>
+<form id="form"><label for="description">Что случилось?</label><textarea id="description" minlength="10" maxlength="2000" required></textarea>
+<label for="files">Фотографии и документы</label><input id="files" type="file" accept="image/jpeg,image/png,application/pdf" multiple required>
+<small>От 1 до 3 файлов, каждый до 5 МиБ. JPEG, PNG или PDF.</small><div id="preview"></div><button id="send">Отправить заявку</button></form>
+<button id="check" hidden>Проверить результат отправки</button><button id="retry" hidden>Повторить ту же отправку</button><div id="downloads"></div></main>
+<script type="module">
+const tg=window.Telegram?.WebApp,el=id=>document.getElementById(id),status=t=>el('status').textContent=t;
+let urls=[],pending=null,pendingBody=null,done=false,busy=false;
+const storageKey='repair-upload-operation';
+try{pending=sessionStorage.getItem(storageKey);}catch{}
+function controls(){for(const id of ['description','files','send'])el(id).disabled=busy||done||!!pending;el('check').hidden=!pending||done;el('check').disabled=busy;el('retry').hidden=!pending||!pendingBody||done;el('retry').disabled=busy;}
+async function call(url,body){
+ const r = await fetch(url, {
+  method: body ? 'POST' : 'GET',
+  headers: {'X-Telegram-Init-Data': tg.initData},
+  body,
+  signal: AbortSignal.timeout(60000),
+ });
+ let data;
+ try {
+  data = await r.json();
+ } catch {
+  if (r.status === 413) throw Object.assign(new Error('Запрос слишком большой'), {status:413});
+  throw new Error('Сервер не подтвердил результат');
+ }
+ if(!r.ok)throw Object.assign(new Error(data.error||'Ошибка запроса'),{status:r.status});return data;
+}
+function showResult(result){
+ done=true;pending=null;try{sessionStorage.removeItem(storageKey);}catch{}
+ status('Заявка №'+result.id+' принята. Вложения сохранены.');
+ for(const file of result.attachments){const b=document.createElement('button');b.textContent='Скачать вложение '+file.id.slice(0,6);b.type='button';
+ b.onclick=async()=>{try{const r=await fetch('./download.php?id='+file.id,{headers:{'X-Telegram-Init-Data':tg.initData}});if(!r.ok)throw new Error('Файл недоступен');const url=URL.createObjectURL(await r.blob());const a=document.createElement('a');a.href=url;a.download='attachment-'+file.id+(file.mime==='application/pdf'?'.pdf':file.mime==='image/png'?'.png':'.jpg');a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);}catch(e){status(e.message);}};
+ el('downloads').append(b);}
+}
+el('files').onchange = () => {
+ for (const url of urls) URL.revokeObjectURL(url);
+ urls = [];
+ el('preview').replaceChildren();
+ for (const file of el('files').files) {
+  const row = document.createElement('div');
+  row.className = 'file';
+  row.textContent = file.name + ' · ' + (file.size / 1024 / 1024).toFixed(2) + ' МиБ';
+  if (['image/jpeg', 'image/png'].includes(file.type)) {
+   const img = document.createElement('img');
+   const url = URL.createObjectURL(file);
+   urls.push(url);
+   img.src = url;
+   img.alt = 'Предпросмотр выбранной фотографии';
+   row.append(img);
+  }
+  el('preview').append(row);
+ }
+};
+el('form').onsubmit=async event=>{
+ event.preventDefault();if(busy||done||pending)return;
+ const files=[...el('files').files];
+ if(files.length<1||files.length>3||files.some(f=>f.size<1||f.size>5*1024*1024)){status('Выберите 1–3 файла размером до 5 МиБ');return;}
+ pending=crypto.randomUUID();try{sessionStorage.setItem(storageKey,pending);}catch{}
+ const body = new FormData();
+ body.append('operation_id', pending);
+ body.append('description', el('description').value);
+ for (const file of files) {
+  body.append('files[]', file, file.name);
+ }
+ pendingBody = body;
+ busy=true;controls();status('Загружаем и сохраняем…');
+ await submitPending();
+};
+el('check').onclick=async()=>{
+ if(!pending||busy)return;busy=true;controls();
+ try{showResult(await call('./api.php?operation_id='+encodeURIComponent(pending)));}
+ catch(e){status(e.status===404?'Запись пока не найдена. Повторите проверку через минуту; не создавайте новую заявку сразу.':e.message);}
+ finally{busy=false;controls();}
+};
+async function submitPending() {
+ try {
+  showResult(await call('./api.php', pendingBody));
+ } catch (error) {
+  status(error.message);
+  if ([401, 413, 422].includes(error.status)) {
+   pending = null;
+   pendingBody = null;
+   try { sessionStorage.removeItem(storageKey); } catch {}
+  }
+ } finally {
+  busy = false;
+  controls();
+ }
+}
+el('retry').onclick = async () => {
+ if (!pendingBody || !pending || busy) return;
+ busy = true;
+ controls();
+ await submitPending();
+};
+if(tg?.initData){tg.ready();controls();if(pending){status('Проверим предыдущую отправку');el('check').click();}}
+else{busy=true;controls();status('Откройте форму из меню Telegram-бота');}
+</script></html>

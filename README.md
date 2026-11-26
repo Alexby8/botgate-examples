@@ -9,6 +9,8 @@
 | [Каталог бота из Google Таблиц](examples/telegram-bot-google-sheets-catalog/) | [Руководство](https://bot-gate.ru/guides/telegram-bot-google-sheets-catalog) | PHP |
 | [Пошаговая анкета на консультацию](examples/telegram-bot-step-by-step-form/) | [Руководство](https://bot-gate.ru/guides/telegram-bot-step-by-step-form) | PHP |
 | [Первая форма заявки в Mini App](examples/telegram-mini-app-html-php-form/) | [Руководство](https://bot-gate.ru/guides/telegram-mini-app-html-php-form) | PHP + HTML/JavaScript |
+| [Фото и документы в Mini App](examples/telegram-mini-app-file-upload/) | [Руководство](https://bot-gate.ru/guides/telegram-mini-app-file-upload) | PHP + HTML/JavaScript |
+| [Анонсы из RSS в Telegram](examples/telegram-rss-channel-autopost/) | [Руководство](https://bot-gate.ru/guides/telegram-rss-channel-autopost) | PHP |
 
 ## Организация
 

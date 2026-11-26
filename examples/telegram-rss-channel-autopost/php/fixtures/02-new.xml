@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Новости сервисного центра</title>
+    <link>https://news.example.org/</link>
+    <description>Учебная лента</description>
+    <item>
+      <guid isPermaLink="false">news-101</guid>
+      <title>Telegram: расписание сервиса</title>
+      <link>https://news.example.org/schedule</link>
+    </item>
+    <item>
+      <guid isPermaLink="false">news-102</guid>
+      <title>Telegram: открыли запись на декабрь</title>
+      <link>https://news.example.org/december</link>
+    </item>
+  </channel>
+</rss>
